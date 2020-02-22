@@ -1,46 +1,27 @@
+#ifndef __JSON_H
+#define __JSON_H
+
 #include <string>
 #include <vector>
 #include <unordered_map>
 
 using namespace std;
 
-vector<string> split(string& str, char c) {
-	vector<string> result;
-	int index = 0;
-	string tmp = "";
-	while (index < str.length()) {
-		if (str[index] != c) {
-			tmp += str[index];
-		}
-		else {
-			result.push_back(tmp);
-			tmp.clear();
-		}
-		++index;
-	}
-	result.push_back(tmp);
-	return result;
-}
-
 class json {
 public:
 	json(int type, void* object);
+	json(const string& input);
 	json(const json& that);
 	json(json&& that);
 	~json();
-
 	json& operator=(const json& that) = delete;
 	json& operator=(json&& that) = delete;
-
-	json(const string& input);
 	string serialize() const;
 
 	int get_type() const;
-
 	int get_int() const;
 	string get_string() const;
 	bool get_bool() const;
-
 	vector<json*>* convert_vector() const;
 	unordered_map<string, json*>* convert_object() const;
 
@@ -51,7 +32,7 @@ private:
 	// Type = 2, boolean;
 	// Type = 3, array;
 	// Type = 4, object;
-	// Type = 5, null; To do
+	// Type = 5, null; -> To do
 	int json_type = -1;
 	void* object = nullptr;
 
@@ -66,6 +47,31 @@ private:
 json::json(int type, void* object) {
 	this->json_type = type;
 	this->object = object;
+}
+
+json::json(const string& input) {
+	int index = 0;
+
+	this->json_type = read_type(input, index);
+
+	switch (this->json_type)
+	{
+	case 0:
+		this->object = int_parser(input, index);
+		break;
+	case 1:
+		this->object = string_parser(input, index);
+		break;
+	case 2:
+		this->object = bool_parser(input, index);
+		break;
+	case 3:
+		this->object = array_parser(input, index);
+		break;
+	case 4:
+		this->object = object_parser(input, index);
+		break;
+	}
 }
 
 json::json(const json& that) {
@@ -93,9 +99,6 @@ json::json(const json& that) {
 		}
 		break;
 	}
-
-	this->json_type = -1;
-	this->object = nullptr;
 }
 
 json::json(json&& that) {
@@ -106,52 +109,23 @@ json::json(json&& that) {
 }
 
 int json::read_type(const string& input, int& index) {
-	while(index < input.size()) {
-		switch (input[index])
-		{
-		case ' ':
-			break;
-		case '\"':
-			return 1;
-		case 't':
-			return 2;
-		case 'f':
-			return 2;
-		case '[':
-			return 3;
-		case '{':
-			return 4;
-		default:
-			return 0;
-		}
+	while (input[index] == ' ')
 		++index;
-	}
-	
-	return -1;
-}
 
-json::json(const string& input) {
-	int index = 0;
-
-	this->json_type = read_type(input, index);
-	
-	switch (this->json_type)
+	switch (input[index])
 	{
-	case 0:
-		this->object = int_parser(input, index);
-		break;
-	case 1:
-		this->object = string_parser(input, ++index);
-		break;
-	case 2:
-		this->object = bool_parser(input, index);
-		break;
-	case 3:
-		this->object = array_parser(input, ++index);
-		break;
-	case 4:
-		this->object = object_parser(input, ++index);
-		break;
+	case '\"':
+		return 1;
+	case 't':
+		return 2;
+	case 'f':
+		return 2;
+	case '[':
+		return 3;
+	case '{':
+		return 4;
+	default:
+		return input[index] >= '0' && input[index] <= '9' ? 0 : -1;
 	}
 }
 
@@ -160,16 +134,16 @@ string json::serialize() const {
 
 	switch (this->json_type)
 	{
+	case -1:
+		return "Undefined JSON Data!";
 	case 0:
 		output += to_string(this->get_int());
 		break;
 	case 1:
-		output += '\"';
-		output += this->get_string();
-		output += '\"';
+		output += '\"' + this->get_string() + '\"';
 		break;
 	case 2:
-		output += to_string(this->get_bool());
+		output += this->get_bool() ? "true" : "false";
 		break;
 	case 3: {
 		output += '[';
@@ -251,12 +225,12 @@ bool json::get_bool() const {
 	return *((bool*)(this->object));
 }
 
-// PTR
+// Return Pointer
 vector<json*>* json::convert_vector() const {
 	return (vector<json*>*)(this->object);
 }
 
-// PTR
+// Return Pointer
 unordered_map<string, json*>* json::convert_object() const {
 	return (unordered_map<string, json*>*)(this->object);
 }
@@ -270,19 +244,20 @@ void* json::int_parser(const string& input, int& index) {
 		++index;
 	}
 
-	// adjust pointer position
-	--index;
-
 	return p;
 }
 
 void* json::string_parser(const string& input, int& index) {
 	string* p = new string();
 
+	++index;
+
 	while (input[index] != '\"') {
 		p->push_back(input[index]);
 		++index;
 	}
+
+	++index;
 
 	return p;
 }
@@ -290,7 +265,7 @@ void* json::string_parser(const string& input, int& index) {
 void* json::bool_parser(const string& input, int& index) {
 	bool* p = new bool(input[index] == 't' ? true : false);
 
-	index += *p ? 3 : 4;
+	index += *p ? 4 : 5;
 
 	return p;
 }
@@ -298,18 +273,22 @@ void* json::bool_parser(const string& input, int& index) {
 void* json::array_parser(const string& input, int& index) {
 	vector<json*>* p = new vector<json*>();
 
+	++index;
+
 	while (input[index] != ']') {
 		switch (input[index])
 		{
 		case ' ':
+			++index;
 			break;
 		case ',':
+			++index;
 			break;
 		case '[':
-			p->push_back(new json(3, this->array_parser(input, ++index)));
+			p->push_back(new json(3, this->array_parser(input, index)));
 			break;
 		case '{':
-			p->push_back(new json(4, this->object_parser(input, ++index)));
+			p->push_back(new json(4, this->object_parser(input, index)));
 			break;
 		case 't':
 			p->push_back(new json(2, this->bool_parser(input, index)));
@@ -318,20 +297,23 @@ void* json::array_parser(const string& input, int& index) {
 			p->push_back(new json(2, this->bool_parser(input, index)));
 			break;
 		case '\"':
-			p->push_back(new json(1, this->string_parser(input, ++index)));
+			p->push_back(new json(1, this->string_parser(input, index)));
 			break;
 		default:
 			p->push_back(new json(0, this->int_parser(input, index)));
 			break;
 		}
-		++index;
 	}
+
+	++index;
 
 	return p;
 }
 
 void* json::object_parser(const string& input, int& index) {
 	unordered_map<string, json*>* p = new unordered_map<string, json*>();
+
+	++index;
 
 	int flag = 0;
 	string column = "";
@@ -340,17 +322,20 @@ void* json::object_parser(const string& input, int& index) {
 			switch (input[index])
 			{
 			case ' ':
+				++index;
 				break;
 			case ',':
+				++index;
 				break;
 			case ':':
+				++index;
 				break;
 			case '[':
-				p->insert({ column, new json(3, this->array_parser(input, ++index)) });
+				p->insert({ column, new json(3, this->array_parser(input, index)) });
 				flag = 0; column = "";
 				break;
 			case '{':
-				p->insert({ column, new json(4, this->object_parser(input, ++index)) });
+				p->insert({ column, new json(4, this->object_parser(input, index)) });
 				flag = 0; column = "";
 				break;
 			case 't':
@@ -362,7 +347,7 @@ void* json::object_parser(const string& input, int& index) {
 				flag = 0; column = "";
 				break;
 			case '\"':
-				p->insert({ column, new json(1, this->string_parser(input, ++index)) });
+				p->insert({ column, new json(1, this->string_parser(input, index)) });
 				flag = 0; column = "";
 				break;
 			default:
@@ -370,7 +355,6 @@ void* json::object_parser(const string& input, int& index) {
 				flag = 0; column = "";
 				break;
 			}
-			++index;
 		}
 		else if (flag == 1) {
 			if (input[index] == '\"')
@@ -386,5 +370,9 @@ void* json::object_parser(const string& input, int& index) {
 		}
 	}
 
+	++index;
+
 	return p;
 }
+
+#endif // __JSON_H

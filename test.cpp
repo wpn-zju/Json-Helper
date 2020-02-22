@@ -20,6 +20,8 @@ int main() {
 	json* test2 = new json(input);
 	cout << (*test2->convert_object())["name"]->get_string() << endl;
 
+	cout << test2->serialize() << endl;
+
 	input = "{\"value\":[14,234,53,32,134]}";
 
 	json* test3 = new json(input);
@@ -28,7 +30,14 @@ int main() {
 	}
 	cout << endl;
 
+	input = "[true, true, false]";
+
+	json* test4 = new json(input);
+
+	cout << test4->serialize() << endl;
+
 	delete(test1);
 	delete(test2);
 	delete(test3);
+	delete(test4);
 }
