@@ -5,3 +5,5 @@ To do list:
 2. Escape characters in string type.
 3. Exception handling.
 4. Null type
+
+![Sample Picture](preview.png)
