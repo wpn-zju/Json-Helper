@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 
 using namespace std;
@@ -109,7 +110,7 @@ json::json(json&& that) {
 }
 
 int json::read_type(const string& input, int& index) {
-	while (input[index] == ' ')
+	while (input[index] == ' ' || input[index] == '\r' || input[index] == '\n' || input[index] == '\t')
 		++index;
 
 	switch (input[index])
@@ -279,8 +280,9 @@ void* json::array_parser(const string& input, int& index) {
 		switch (input[index])
 		{
 		case ' ':
-			++index;
-			break;
+		case '\r':
+		case '\n':
+		case '\t':
 		case ',':
 			++index;
 			break;
@@ -322,11 +324,10 @@ void* json::object_parser(const string& input, int& index) {
 			switch (input[index])
 			{
 			case ' ':
-				++index;
-				break;
+			case '\r':
+			case '\n':
+			case '\t':
 			case ',':
-				++index;
-				break;
 			case ':':
 				++index;
 				break;
