@@ -6,4 +6,4 @@ To do list:
 3. Exception handling.
 4. Null type
 
-![Sample Picture](/res/image/jsonhelper.png)
+![Sample Picture](https://wpn-zju.github.io/res/image/jsonhelper.png)
