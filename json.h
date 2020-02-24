@@ -8,6 +8,27 @@
 
 using namespace std;
 
+string string_reader(const string& input, int& index);
+string string_reader(const string& input, int& index) {
+	string ret;
+
+	++index;
+
+	while (input[index] != '"') {
+		// Escape Characters
+		if (input[index] == '\\') {
+			ret.push_back('\\');
+			++index;
+		}
+		ret.push_back(input[index]);
+		++index;
+	}
+
+	++index;
+
+	return ret;
+}
+
 class json {
 public:
 	json(int type);
@@ -16,6 +37,7 @@ public:
 	json(bool value);
 	json(int type, void* object);
 	json(const string& input);
+	json(const char* input);
 	json(const json& that);
 	json(json&& that);
 	~json();
@@ -31,17 +53,17 @@ public:
 	unordered_map<string, json*>* convert_object() const;
 
 private:
-	// Type = -1, nullptr;
+	// Type = -1, nullptr / null;
 	// Type = 0, number;
 	// Type = 1, string;
 	// Type = 2, boolean;
 	// Type = 3, array;
 	// Type = 4, object;
-	// Type = 5, null; -> To do
 	int json_type = -1;
 	void* object = nullptr;
 
 	int read_type(const string& input, int& index);
+	void* null_parser(const string& input, int& index);
 	void* int_parser(const string& input, int& index);
 	void* string_parser(const string& input, int& index);
 	void* bool_parser(const string& input, int& index);
@@ -54,6 +76,20 @@ json::json(int type) {
 
 	switch (this->json_type)
 	{
+	case -1:
+		break;
+	case 0:
+		cout << "Create an int json object with default value 0!" << endl;
+		this->object = new int(0);
+		break;
+	case 1:
+		cout << "Create a string json object with default value (empty string)!" << endl;
+		this->object = new string("");
+		break;
+	case 2:
+		cout << "Create a bool json object with default value (false)!" << endl;
+		this->object = new bool(false);
+		break;
 	case 3:
 		this->object = new vector<json*>();
 		break;
@@ -93,6 +129,8 @@ json::json(const string& input) {
 
 	switch (this->json_type)
 	{
+	case -1:
+		this->object = nullptr;
 	case 0:
 		this->object = int_parser(input, index);
 		break;
@@ -108,33 +146,46 @@ json::json(const string& input) {
 	case 4:
 		this->object = object_parser(input, index);
 		break;
+	default:
+		cout << "Invalid JSON Input String!" << endl;
+		break;
 	}
 }
 
+json::json(const char* input) : json(string(input)) { }
+
 json::json(const json& that) {
+	this->json_type = that.json_type;
+
 	switch (this->json_type)
 	{
-	case 0:
-		this->object = new int(that.get_int());
-		break;
-	case 1:
-		this->object = new string(that.get_string());
-		break;
-	case 2:
-		this->object = new bool(that.get_bool());
-		break;
-	case 3:
-		this->object = new vector<json*>();
-		for (auto it = that.convert_vector()->begin(); it != that.convert_vector()->end(); ++it) {
-			this->convert_vector()->push_back(new json(**it));
-		}
-		break;
-	case 4:
-		this->object = new unordered_map<string, json*>();
-		for (auto it = that.convert_object()->begin(); it != that.convert_object()->end(); ++it) {
-			this->convert_object()->insert({ it->first, new json(*(it->second)) });
-		}
-		break;
+		case -1:
+			this->object = nullptr;
+			break;
+		case 0:
+			this->object = new int(that.get_int());
+			break;
+		case 1:
+			this->object = new string(that.get_string());
+			break;
+		case 2:
+			this->object = new bool(that.get_bool());
+			break;
+		case 3:
+			this->object = new vector<json*>();
+			for (auto it = that.convert_vector()->begin(); it != that.convert_vector()->end(); ++it) {
+				this->convert_vector()->push_back(new json(**it));
+			}
+			break;
+		case 4:
+			this->object = new unordered_map<string, json*>();
+			for (auto it = that.convert_object()->begin(); it != that.convert_object()->end(); ++it) {
+				this->convert_object()->insert({ it->first, new json(*(it->second)) });
+			}
+			break;
+		default:
+			this->json_type = -1;
+			break;
 	}
 }
 
@@ -161,6 +212,10 @@ int json::read_type(const string& input, int& index) {
 		return 3;
 	case '{':
 		return 4;
+	case 'n':
+		return -1;
+	case '-':
+		return 0;
 	default:
 		return input[index] >= '0' && input[index] <= '9' ? 0 : -1;
 	}
@@ -172,7 +227,8 @@ string json::serialize() const {
 	switch (this->json_type)
 	{
 	case -1:
-		return "Undefined JSON Data!";
+		output += "null";
+		break;
 	case 0:
 		output += to_string(this->get_int());
 		break;
@@ -215,6 +271,9 @@ string json::serialize() const {
 json::~json() {
 	switch (this->json_type)
 	{
+	case -1: {
+		break;
+	}
 	case 0: {
 		delete (int*)(this->object);
 		break;
@@ -251,28 +310,64 @@ int json::get_type() const {
 }
 
 int json::get_int() const {
+	if (this->json_type != 0) {
+		cout << "NOT an int json object, this will return 0!" << endl;
+		return 0;
+	}
+
 	return *((int*)(this->object));
 }
 
 string json::get_string() const {
+	if (this->json_type != 1) {
+		cout << "NOT a string json object, this will return empty string!" << endl;
+		return "";
+	}
+
 	return *((string*)(this->object));
 }
 
 bool json::get_bool() const {
+	if (this->json_type != 2) {
+		cout << "NOT a bool json object, this will return false!" << endl;
+		return false;
+	}
+
 	return *((bool*)(this->object));
 }
 
 // Return Pointer
 vector<json*>* json::convert_vector() const {
+	if (this->json_type != 3) {
+		cout << "NOT an array json object, this will return nullptr!" << endl;
+		return nullptr;
+	}
+
 	return (vector<json*>*)(this->object);
 }
 
 // Return Pointer
 unordered_map<string, json*>* json::convert_object() const {
+	if (this->json_type != 4) {
+		cout << "NOT a object format json object, this will return nullptr!" << endl;
+		return nullptr;
+	}
+
 	return (unordered_map<string, json*>*)(this->object);
 }
 
+void* json::null_parser(const string& input, int& index) {
+	index += 4;
+
+	return nullptr;
+}
+
 void* json::int_parser(const string& input, int& index) {
+	bool neg = input[index] == '-';
+
+	if (neg)
+		++index;
+
 	int* p = new int(0);
 
 	while (input[index] <= '9' && input[index] >= '0') {
@@ -280,6 +375,9 @@ void* json::int_parser(const string& input, int& index) {
 		*p += input[index] - '0';
 		++index;
 	}
+
+	if (neg)
+		*p *= -1;
 
 	return p;
 }
@@ -293,8 +391,6 @@ void* json::string_parser(const string& input, int& index) {
 		// Escape Characters
 		if (input[index] == '\\') {
 			p->push_back('\\');
-			++index;
-			p->push_back(input[index]);
 			++index;
 		}
 		p->push_back(input[index]);
@@ -344,6 +440,12 @@ void* json::array_parser(const string& input, int& index) {
 		case '"':
 			p->push_back(new json(1, this->string_parser(input, index)));
 			break;
+		case 'n':
+			p->push_back(new json(-1, this->null_parser(input, index)));
+			break;
+		case '-':
+			p->push_back(new json(0, this->int_parser(input, index)));
+			break;
 		default:
 			p->push_back(new json(0, this->int_parser(input, index)));
 			break;
@@ -363,7 +465,7 @@ void* json::object_parser(const string& input, int& index) {
 	int flag = 0;
 	string column = "";
 	while (input[index] != '}') {
-		if (flag == 2) {
+		if (flag == 1) {
 			switch (input[index])
 			{
 			case ' ':
@@ -394,23 +496,28 @@ void* json::object_parser(const string& input, int& index) {
 				p->insert({ column, new json(1, this->string_parser(input, index)) });
 				flag = 0; column = "";
 				break;
+			case 'n':
+				p->insert({ column, new json(-1, this->null_parser(input, index)) });
+				flag = 0; column = "";
+				break;
+			case '-':
+				p->insert({ column, new json(0, this->int_parser(input, index)) });
+				flag = 0; column = "";
+				break;
 			default:
 				p->insert({ column, new json(0, this->int_parser(input, index)) });
 				flag = 0; column = "";
 				break;
 			}
 		}
-		else if (flag == 1) {
-			if (input[index] == '"')
-				flag = 2;
-			else
-				column.push_back(input[index]);
-			++index;
-		}
 		else {
-			if (input[index] == '"')
+			if (input[index] == '"') {
+				column = string_reader(input, index);
 				flag = 1;
-			++index;
+			}
+			else {
+				++index;
+			}
 		}
 	}
 
