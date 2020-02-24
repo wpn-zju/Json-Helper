@@ -1,7 +1,7 @@
 #include <iostream>
 #include "json.h"
 
-#define output;
+#define output
 
 using namespace std;
 
