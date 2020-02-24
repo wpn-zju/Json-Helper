@@ -10,6 +10,10 @@ using namespace std;
 
 class json {
 public:
+	json(int type);
+	json(int type, int value);
+	json(int type, string value);
+	json(bool value);
 	json(int type, void* object);
 	json(const string& input);
 	json(const json& that);
@@ -44,6 +48,38 @@ private:
 	void* array_parser(const string& input, int& index);
 	void* object_parser(const string& input, int& index);
 };
+
+json::json(int type) {
+	this->json_type = type;
+
+	switch (this->json_type)
+	{
+	case 3:
+		this->object = new vector<json*>();
+		break;
+	case 4:
+		this->object = new unordered_map<string, json*>();
+		break;
+	default:
+		this->json_type = -1;
+		break;
+	}
+}
+
+json::json(int type, int value) {
+	this->json_type = 0;
+	this->object = new int(value);
+}
+
+json::json(int type, string value) {
+	this->json_type = 1;
+	this->object = new string(value);
+}
+
+json::json(bool value) {
+	this->json_type = 2;
+	this->object = new bool(value);
+}
 
 json::json(int type, void* object) {
 	this->json_type = type;
@@ -115,7 +151,7 @@ int json::read_type(const string& input, int& index) {
 
 	switch (input[index])
 	{
-	case '\"':
+	case '"':
 		return 1;
 	case 't':
 		return 2;
@@ -141,7 +177,7 @@ string json::serialize() const {
 		output += to_string(this->get_int());
 		break;
 	case 1:
-		output += '\"' + this->get_string() + '\"';
+		output += '"' + this->get_string() + '"';
 		break;
 	case 2:
 		output += this->get_bool() ? "true" : "false";
@@ -162,7 +198,7 @@ string json::serialize() const {
 		output += '{';
 		auto it = this->convert_object()->begin();
 		while (it != this->convert_object()->end()) {
-			output += '\"' + it->first + '\"';
+			output += '"' + it->first + '"';
 			output += ':';
 			output += it->second->serialize();
 			if (++it == this->convert_object()->end())
@@ -202,7 +238,7 @@ json::~json() {
 			delete (it->second);
 			it->second = nullptr;
 		}
-		delete(this->convert_object());
+		delete (this->convert_object());
 		break;
 	}
 
@@ -253,7 +289,14 @@ void* json::string_parser(const string& input, int& index) {
 
 	++index;
 
-	while (input[index] != '\"') {
+	while (input[index] != '"') {
+		// Escape Characters
+		if (input[index] == '\\') {
+			p->push_back('\\');
+			++index;
+			p->push_back(input[index]);
+			++index;
+		}
 		p->push_back(input[index]);
 		++index;
 	}
@@ -298,7 +341,7 @@ void* json::array_parser(const string& input, int& index) {
 		case 'f':
 			p->push_back(new json(2, this->bool_parser(input, index)));
 			break;
-		case '\"':
+		case '"':
 			p->push_back(new json(1, this->string_parser(input, index)));
 			break;
 		default:
@@ -343,11 +386,11 @@ void* json::object_parser(const string& input, int& index) {
 				p->insert({ column, new json(2, this->bool_parser(input, index)) });
 				flag = 0; column = "";
 				break;
-			case 'f"':
+			case 'f':
 				p->insert({ column, new json(2, this->bool_parser(input, index)) });
 				flag = 0; column = "";
 				break;
-			case '\"':
+			case '"':
 				p->insert({ column, new json(1, this->string_parser(input, index)) });
 				flag = 0; column = "";
 				break;
@@ -358,14 +401,14 @@ void* json::object_parser(const string& input, int& index) {
 			}
 		}
 		else if (flag == 1) {
-			if (input[index] == '\"')
+			if (input[index] == '"')
 				flag = 2;
 			else
 				column.push_back(input[index]);
 			++index;
 		}
 		else {
-			if (input[index] == '\"')
+			if (input[index] == '"')
 				flag = 1;
 			++index;
 		}
