@@ -1,7 +1,7 @@
 #include <iostream>
 #include "json.h"
 
-// #define output
+#define output
 
 using namespace std;
 
@@ -20,6 +20,11 @@ int main() {
 		json test7 = json(f);
 		unordered_map<string, json> m{ { "str1", { 1 } }, { "str2", {1} }, { "str3", test7 } };
 		json test8 = json(m);
+
+		json test9(test8);
+		json test10(move(test7));
+		test9 = test7;
+		test7 = move(test10);
 
 #ifdef output
 		cout
@@ -42,6 +47,8 @@ int main() {
 		cout << test6.serialize() << endl;
 		cout << test7.serialize() << endl;
 		cout << test8.serialize() << endl;
+		cout << test9.serialize() << endl;
+		cout << test10.serialize() << endl;
 #endif
 	}
 
