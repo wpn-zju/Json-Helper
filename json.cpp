@@ -343,7 +343,7 @@ unordered_map<string, json> json::get_object() const {
 }
 
 // Returning Pointer - Copy free
-string* json::convert_string() const {
+const string* json::convert_string() const {
 	if (this->json_type != value_type::String) {
 		throw runtime_error("Invalid calling json::convert_string(), source: " + serialize());
 	}
@@ -352,7 +352,7 @@ string* json::convert_string() const {
 }
 
 // Returning Pointer - Copy free
-vector<json>* json::convert_vector() const {
+const vector<json>* json::convert_vector() const {
 	if (this->json_type != value_type::Array) {
 		throw runtime_error("Invalid calling json::convert_vector(), source: " + serialize());
 	}
@@ -361,7 +361,34 @@ vector<json>* json::convert_vector() const {
 }
 
 // Returning Pointer - Copy free
-unordered_map<string, json>* json::convert_object() const {
+const unordered_map<string, json>* json::convert_object() const {
+	if (this->json_type != value_type::Object) {
+		throw runtime_error("Invalid calling json::convert_object(), source: " + serialize());
+	}
+
+	return static_cast<unordered_map<string, json>*>(this->object);
+}
+
+// Returning Pointer - Copy free
+string* json::convert_string() {
+	if (this->json_type != value_type::String) {
+		throw runtime_error("Invalid calling json::convert_string(), source: " + serialize());
+	}
+
+	return static_cast<string*>(this->object);
+}
+
+// Returning Pointer - Copy free
+vector<json>* json::convert_vector() {
+	if (this->json_type != value_type::Array) {
+		throw runtime_error("Invalid calling json::convert_vector(), source: " + serialize());
+	}
+
+	return static_cast<vector<json>*>(this->object);
+}
+
+// Returning Pointer - Copy free
+unordered_map<string, json>* json::convert_object() {
 	if (this->json_type != value_type::Object) {
 		throw runtime_error("Invalid calling json::convert_object(), source: " + serialize());
 	}
@@ -412,7 +439,7 @@ const json& json::operator[](size_t index) const {
 
 const json& json::operator[](const string& index) const {
 	if (this->json_type == value_type::Object) {
-		return (*this->convert_object())[index];
+		return (*this->convert_object()).at(index);
 	}
 
 	throw runtime_error("You can not call string-indexer for a non-object json, source: " + serialize());
@@ -420,7 +447,7 @@ const json& json::operator[](const string& index) const {
 
 const json& json::operator[](string&& index) const {
 	if (this->json_type == value_type::Object) {
-		return (*this->convert_object())[index];
+		return (*this->convert_object()).at(index);
 	}
 
 	throw runtime_error("You can not call string-indexer for a non-object json, source: " + serialize());

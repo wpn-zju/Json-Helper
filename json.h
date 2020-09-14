@@ -44,9 +44,12 @@ public:
 	std::string get_string() const;
 	std::vector<json> get_vector() const;
 	std::unordered_map<std::string, json> get_object() const;
-	std::string* convert_string() const;
-	std::vector<json>* convert_vector() const;
-	std::unordered_map<std::string, json>* convert_object() const;
+	const std::string* convert_string() const;
+	const std::vector<json>* convert_vector() const;
+	const std::unordered_map<std::string, json>* convert_object() const;
+	std::string* convert_string();
+	std::vector<json>* convert_vector();
+	std::unordered_map<std::string, json>* convert_object();
 
 	// Ver 2.0 - Indexer
 	json& operator[](std::size_t index);
