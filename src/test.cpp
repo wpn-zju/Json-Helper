@@ -20,7 +20,6 @@ int main() {
 		json test7 = json(f);
 		unordered_map<string, json> m{ { "str1", { 1 } }, { "str2", {1} }, { "str3", test7 } };
 		json test8 = json(m);
-
 		json test9(test8);
 		json test10(move(test7));
 		test9 = test7;

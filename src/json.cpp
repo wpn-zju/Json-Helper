@@ -453,6 +453,7 @@ const json& json::operator[](string&& index) const {
 	throw runtime_error("You can not call string-indexer for a non-object json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::push_back(const json& that) {
 	if (this->json_type == value_type::Array) {
 		this->convert_vector()->push_back(that);
@@ -461,6 +462,7 @@ void json::push_back(const json& that) {
 	throw runtime_error("You can not call json::push_back(const json&) for a non-array json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::emplace_back(json&& that) {
 	if (this->json_type == value_type::Array) {
 		this->convert_vector()->emplace_back(that);
@@ -469,6 +471,7 @@ void json::emplace_back(json&& that) {
 	throw runtime_error("You can not call json::emplace_back(json&&) for a non-array json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::insert(const string& key, const json& that) {
 	if (this->json_type == value_type::Object) {
 		this->convert_object()->insert(pair<string, json>(key, that));
@@ -477,25 +480,28 @@ void json::insert(const string& key, const json& that) {
 	throw runtime_error("You can not call json::insert(const std::string& key, const json& that) for a non-object json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::insert(const string& key, json&& that) {
 	if (this->json_type == value_type::Object) {
-		this->convert_object()->insert(pair<string, json>(key, that));
+		this->convert_object()->insert(pair<string, json>(key, move(that)));
 	}
 
 	throw runtime_error("You can not call json::insert(const std::string& key, json&& that) for a non-object json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::insert(string&& key, const json& that) {
 	if (this->json_type == value_type::Object) {
-		this->convert_object()->insert(pair<string, json>(key, that));
+		this->convert_object()->insert(pair<string, json>(move(key), that));
 	}
 
 	throw runtime_error("You can not call json::insert(std::string&& key, const json& that) for a non-object json, source: " + serialize());
 }
 
+/* Unsafe */
 void json::insert(string&& key, json&& that) {
 	if (this->json_type == value_type::Object) {
-		this->convert_object()->insert(pair<string, json>(key, that));
+		this->convert_object()->insert(std::make_pair(move(key), move(that)));
 	}
 
 	throw runtime_error("You can not call json::insert(std::string&& key, json&& that) for a non-object json, source: " + serialize());
